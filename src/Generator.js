@@ -4,14 +4,16 @@ const EvaluationType = cg.EvaluationType;
 
 
 class Generator {  
+  constructor(showIterations) {
+    this.showIterations = showIterations;
+  }
   create(rows, cols) {
     const grid = new CellGrid(rows, cols);
 
     let positionCount = grid.getNumberOfPositions();
-    let positionIndex = this._getRandomInteger(0, positionCount + 1);
+    let positionIndex = this._getRandomInteger(0, positionCount);
     let start = grid.getPosition(positionIndex);
     let [row, col] = start;
-    console.log(`init: row=${row} col=${col}`);
     grid.createTarget(row, col);
     grid.removePosition(positionIndex);
 
@@ -25,14 +27,13 @@ class Generator {
       evaluation = grid.evaluateGrid(row, col);
       if (evaluation === EvaluationType.MUTABLE) {
         path = this._loopErasedRandomWalk(row, col, grid);
-        path.forEach((p) => grid.createPath(...p));
+        path.forEach((p) => grid.createTarget(...p));
       }
 
       grid.removePosition(positionIndex);
       positionCount = grid.getNumberOfPositions();
     }
 
-    grid.finalize();
     return grid;
   }
 
@@ -53,11 +54,18 @@ class Generator {
     let [row, col] = [startRow, startCol];
     // Basically bogo create a Path to a target.
     gridPath.createPath(row, col); 
+    path.push([row, col]);
+    let attempts = 0;
     while (!gridPath.isConnectedToTarget(row, col)) { // has added row, col connected to the target(s)
       // Find neighbors that have been evaluated. If empty, restart.
       // Neighbors are DirectionEnum -> [row, col]. 0 = UP, 1 = DOWN, 2 = LEFT, 3 = RIGHT
       neighbors = gridPath.getEvaluatedNeighbors(row, col);
       if (Object.keys(neighbors).length === 0) {
+        // Try a new place. RNG hates this start or there is no possible path without violating no 2x2 cubes rule.
+        attempts++;
+        if (attempts >= 5) {
+          return [];
+        }
         gridPath = grid.generateGridPath();
         path = new Array();
         row = startRow;
@@ -69,6 +77,10 @@ class Generator {
       // If empty, restart.
       validDirections = this._getValidDirections(Object.keys(neighbors), direction);
       if (validDirections.length === 0) {
+        attempts++;
+        if (attempts >= 5) {
+          return [];
+        }
         gridPath = grid.generateGridPath();
         path = new Array();
         row = startRow;
@@ -99,7 +111,9 @@ class Generator {
       direction = this._getOppositeDirection(validDirections[randomDirection]);
 
       // Useful to track progress/debugging iteration by iteration
-      // console.log(gridPath.toString());
+      if (this.showIterations) {
+        console.log(gridPath.toString());
+      }
     }
 
     return path;

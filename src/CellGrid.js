@@ -3,23 +3,29 @@ const EvaluationType = Object.freeze({MUTABLE: 0, IMMUTABLE: 1});
 
 class CellGrid {
   constructor(rows, cols) {
-    this.getNumberOfPositions = this.getNumberOfPositions.bind(this);
-    this.getPosition = this.getPosition.bind(this);
-    this.removePosition = this.removePosition.bind(this);
-    this.evaluateGrid = this.evaluateGrid.bind(this);
-    this.evaluate = this.evaluate.bind(this);
-    this.generateGridPath = this.generateGridPath.bind(this);
-    this.getEvaluatedNeighbors = this.getEvaluatedNeighbors.bind(this);
-    this.overlayGridPath = this.overlayGridPath.bind(this);
-
-    this._populateGrid = this._populateGrid.bind(this);
-    this._convertPathToTarget = this._convertPathToTarget.bind(this);
-
     this.rows = rows;
     this.cols = cols;
-
+    
+    this.paths = new Array();
     this.positions = new Array();
     this.grid = this._populateGrid(this.rows, this.cols);
+  }
+
+  _populateGrid(rows, cols) {
+    if (this.grid) {
+      return this.grid;
+    }
+
+    const grid = new Array(rows);
+    for (let row = 0; row < rows; row++) {
+      grid[row] = new Array(cols);
+      for (let col = 0; col < cols; col++) {
+        grid[row][col] = CellType.WALL;
+        this.positions.push([row, col]);
+      }
+    }
+
+    return grid;
   }
 
   getNumberOfPositions() {
@@ -73,13 +79,6 @@ class CellGrid {
     return EvaluationType.MUTABLE;
   }
 
-  generateGridPath() {
-    const gridPath = new CellGrid(this.rows, this.cols);
-    gridPath.overlayGridPath(this.grid);
-    gridPath._convertPathToTarget();
-    return gridPath;
-  }
-
   getEvaluatedNeighbors(row, col) {
     let neighbors = {};
 
@@ -99,10 +98,28 @@ class CellGrid {
     return neighbors;
   }
 
-  overlayGridPath(path) {
+  generateGridPath() {
+    const gridPath = new CellGrid(this.rows, this.cols);
+    gridPath._overlayGridPath(this.grid);
+    gridPath._convertPathToTarget();
+    return gridPath;
+  }
+
+  _overlayGridPath(path) {
     for (let row = 0; row < this.rows; row++) {
       for (let col = 0; col < this.cols; col++) {
-        this.grid[row][col] = path[row][col]
+        this.grid[row][col] = path[row][col];
+      }
+    }
+  }
+
+  _convertPathToTarget() {
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        // Convert any existing paths to target.
+        if (this.grid[row][col] === CellType.PATH) {
+          this.grid[row][col] = CellType.TARGET;
+        }
       }
     }
   }
@@ -112,6 +129,7 @@ class CellGrid {
   }
 
   createTarget(row, col) {
+    this.paths = [row, col];
     this.grid[row][col] = CellType.TARGET;
   }
 
@@ -138,10 +156,6 @@ class CellGrid {
       || (right && right === type);
   }
 
-  finalize() {
-    this._convertPathToTarget();
-  }
-
   toString() {
     let repr = "";
     for (let row = 0; row < this.rows; row++) {
@@ -159,32 +173,8 @@ class CellGrid {
     return repr;
   }
 
-  _populateGrid(rows, cols) {
-    if (this.grid) {
-      return this.grid;
-    }
-
-    const grid = new Array(rows);
-    for (let row = 0; row < rows; row++) {
-      grid[row] = new Array(cols);
-      for (let col = 0; col < cols; col++) {
-        grid[row][col] = CellType.WALL;
-        this.positions.push([row, col]);
-      }
-    }
-
-    return grid;
-  }
-
-  _convertPathToTarget() {
-    for (let row = 0; row < this.rows; row++) {
-      for (let col = 0; col < this.cols; col++) {
-        // Convert any existing paths to target.
-        if (this.grid[row][col] === CellType.PATH) {
-          this.grid[row][col] = CellType.TARGET;
-        }
-      }
-    }
+  _isPathOrTarget(value) {
+    return value && (this._isPath(value) || this._isTarget(value));
   }
 
   _isPath(value) {
@@ -193,10 +183,6 @@ class CellGrid {
 
   _isTarget(value) {
     return value === CellType.TARGET;
-  }
-
-  _isPathOrTarget(value) {
-    return value && (this._isPath(value) || this._isTarget(value));
   }
 }
 
