@@ -1,10 +1,12 @@
-const CellType = Object.freeze({WALL: 0, PATH: 1, TARGET: 2});
+const CellType = Object.freeze({WALL: 0, PATH: 1, TARGET: 2, START: 3, END: 4});
 const EvaluationType = Object.freeze({MUTABLE: 0, IMMUTABLE: 1});
 
 class CellGrid {
   constructor(rows, cols) {
     this.rows = rows;
     this.cols = cols;
+    this.start = null;
+    this.end = null;
     
     this.paths = new Array();
     this.positions = new Array();
@@ -42,6 +44,10 @@ class CellGrid {
     return this.positions.pop();
   }
 
+  getTargetSize() {
+    return this.paths.length;
+  }
+
   evaluateGrid(row, col) {
     return this.evaluate(row, col, this.grid);
   }
@@ -77,6 +83,19 @@ class CellGrid {
       return EvaluationType.IMMUTABLE;
     }
     return EvaluationType.MUTABLE;
+  }
+
+
+  _isPathOrTarget(value) {
+    return value && (this._isPath(value) || this._isTarget(value));
+  }
+
+  _isPath(value) {
+    return value === CellType.PATH;
+  }
+
+  _isTarget(value) {
+    return value === CellType.TARGET;
   }
 
   getEvaluatedNeighbors(row, col) {
@@ -129,7 +148,7 @@ class CellGrid {
   }
 
   createTarget(row, col) {
-    this.paths = [row, col];
+    this.paths.push([row, col]);
     this.grid[row][col] = CellType.TARGET;
   }
 
@@ -164,6 +183,10 @@ class CellGrid {
           repr += " * ";
         } else if (this.grid[row][col] === CellType.TARGET) {
           repr += " x ";
+        } else if (this.grid[row][col] === CellType.START) {
+          repr += " + ";  
+        } else if (this.grid[row][col] === CellType.END) {
+          repr += " ^ ";
         } else {
           repr += " - ";
         }
@@ -173,16 +196,12 @@ class CellGrid {
     return repr;
   }
 
-  _isPathOrTarget(value) {
-    return value && (this._isPath(value) || this._isTarget(value));
-  }
+  finalize(start, end) {
+    this.start = this.paths[start];
+    this.end = this.paths[end];
 
-  _isPath(value) {
-    return value === CellType.PATH;
-  }
-
-  _isTarget(value) {
-    return value === CellType.TARGET;
+    this.grid[this.start[0]][this.start[1]] = CellType.START;
+    this.grid[this.end[0]][this.end[1]] = CellType.END;
   }
 }
 

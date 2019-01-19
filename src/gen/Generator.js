@@ -34,6 +34,15 @@ class Generator {
       positionCount = grid.getNumberOfPositions();
     }
 
+    const targetCount = grid.getTargetSize();
+    let begin = this._getRandomInteger(0, targetCount);
+    let end = this._getRandomInteger(0, targetCount);
+    while (begin === end) { 
+      begin = this._getRandomInteger(0, targetCount);
+      end = this._getRandomInteger(0, targetCount);
+    }
+    grid.finalize(begin, end);
+
     return grid;
   }
 
