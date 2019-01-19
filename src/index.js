@@ -1,4 +1,4 @@
-const Generator = require("./Generator").Generator;
+const Generator = require("./gen/Generator").Generator;
 
 const showIterations = true;
 const gen = new Generator(showIterations);
