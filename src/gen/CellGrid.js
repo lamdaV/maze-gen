@@ -94,8 +94,22 @@ class CellGrid {
     return value === CellType.PATH;
   }
 
+  isValidPosition(row, col) {
+    let position = this.grid[row];
+    position = (position) ? position[col] : null;
+    return this._isTarget(position) || this._isStart(position) || this._isEnd(position);
+  }
+
   _isTarget(value) {
     return value === CellType.TARGET;
+  }
+
+  _isStart(value) {
+    return value === CellType.START;
+  }
+
+  _isEnd(value) {
+    return value === CellType.END;
   }
 
   getEvaluatedNeighbors(row, col) {
@@ -203,6 +217,48 @@ class CellGrid {
     this.grid[this.start[0]][this.start[1]] = CellType.START;
     this.grid[this.end[0]][this.end[1]] = CellType.END;
   }
+
+  check(row, col) {
+    if (!row || !col) {
+      return {attribute: "UNKNOWN", options: this.start};
+    }
+    row = parseInt(row);
+    col = parseInt(col);
+    let position = this.grid[row];
+    if (!position) {
+      return {error: [{msg: "invalid row"}]};
+    }
+    position = position[col];
+    if (!position) {
+      return {error: [{msg: "invalid col"}]};
+    } else if (position === CellType.WALL) {
+      return {error: [{msg: "invalid position"}]};
+    }
+
+    let upRow = this.grid[row - 1];
+    let downRow = this.grid[row + 1];
+
+    let up = (upRow) ? upRow[col] : undefined;
+    let down = (downRow) ? downRow[col] : undefined;
+    let left = this.grid[row][col - 1];
+    let right = this.grid[row][col + 1];
+
+    const options = [];
+    if (this._isTarget(up) || this._isStart(up) || this._isEnd(up)) { options.push([row - 1, col]); }
+    if (this._isTarget(left) || this._isStart(left) || this._isEnd(left)) { options.push([row, col - 1]); }
+    if (this._isTarget(down) || this._isStart(down) || this._isEnd(down)){ options.push([row + 1, col]); }
+    if (this._isTarget(right) || this._isStart(right) || this._isEnd(right)) { options.push([row, col + 1]); }
+
+    const attribute = this._getAttribute(position);
+    return {attribute, options};
+  }
+
+  _getAttribute(value) {
+    if (this._isTarget(value)) { return "PATH"; }
+    if (this._isStart(value)) { return "START"; }
+    if (this._isEnd(value)) { return "END"; }
+    return "UNKNOWN";
+  }
 }
 
-module.exports = {CellGrid, EvaluationType}
+module.exports = {CellGrid, EvaluationType};
